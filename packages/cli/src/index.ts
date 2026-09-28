@@ -632,6 +632,10 @@ program
   .option('-p, --platforms <platforms>', '目标平台，逗号分隔', 'zhihu,juejin')
   .option('-t, --title <title>', '文章标题（默认从文件提取）')
   .option('--cover <url>', '封面图 URL 或本地路径')
+  .option(
+    '--image-host <platform>',
+    '可选：先传到指定平台当图床（默认不传，本地图转 data URI，由各目标站自己上传）'
+  )
   .option('--dry-run', '仅显示将要执行的操作，不实际同步')
   .action(async (file: string, options) => {
     // 检查文件是否存在
@@ -706,7 +710,8 @@ program
       process.exit(1)
     }
 
-    // 处理本地图片：上传到第一个目标平台作为图床
+    // 处理本地图片：默认转 data URI，由各平台适配器各自上传到本站图床
+    // （旧逻辑先传到第一个平台当图床，博客园常因 XSRF-TOKEN 失败，正文里会残留 images/xxx.jpg）
     const fileDir = path.dirname(filePath)
     const localImages = findLocalImages(parsed.content, fileDir)
 
@@ -714,29 +719,56 @@ program
     let processedHtml = html
 
     if (localImages.length > 0) {
-      // 使用第一个目标平台作为图床
-      const imageHost = platforms[0]
-      console.log(chalk.bold(`发现 ${localImages.length} 张本地图片，上传到 ${imageHost}...`))
-      console.log()
+      const imageHostFlag = (options as { imageHost?: string }).imageHost as string | undefined
 
-      const imageResult = await processLocalImages(parsed.content, fileDir, bridge, imageHost)
-
-      if (imageResult.uploadedCount > 0) {
-        // 更新内容
-        if (parsed.format === 'markdown') {
-          processedMarkdown = imageResult.content
-          processedHtml = markdownToHtml(imageResult.content)
-        } else {
-          processedHtml = imageResult.content
+      if (imageHostFlag) {
+        console.log(chalk.bold(`发现 ${localImages.length} 张本地图片，上传到图床 ${imageHostFlag}...`))
+        console.log()
+        const imageResult = await processLocalImages(parsed.content, fileDir, bridge, imageHostFlag)
+        if (imageResult.uploadedCount > 0) {
+          if (parsed.format === 'markdown') {
+            processedMarkdown = imageResult.content
+            processedHtml = markdownToHtml(imageResult.content)
+          } else {
+            processedHtml = imageResult.content
+          }
         }
-      }
-
-      console.log()
-      console.log(
-        `图片上传完成: ${chalk.green(imageResult.uploadedCount + ' 成功')}, ${chalk.red(imageResult.failedCount + ' 失败')}`
-      )
-      if (platforms.length > 1) {
-        console.log(chalk.gray(`(其他平台将从 ${imageHost} 图床转存)`))
+        // 上传失败的仍转 data URI，避免相对路径漏出去
+        const stillLocal = findLocalImages(
+          parsed.format === 'markdown' ? processedMarkdown! : processedHtml!,
+          fileDir
+        )
+        if (stillLocal.length > 0) {
+          console.log(chalk.yellow(`还有 ${stillLocal.length} 张未上传，改为 data URI...`))
+          const uriResult = convertImagesToDataUri(
+            parsed.format === 'markdown' ? processedMarkdown! : processedHtml!,
+            fileDir
+          )
+          if (parsed.format === 'markdown') {
+            processedMarkdown = uriResult.content
+            processedHtml = markdownToHtml(uriResult.content)
+          } else {
+            processedHtml = uriResult.content
+          }
+        }
+        console.log()
+        console.log(
+          `图片处理: ${chalk.green(imageResult.uploadedCount + ' 已上传')}, ${chalk.yellow(stillLocal.length + ' 转 data URI')}, ${chalk.red(imageResult.failedCount + ' 读文件失败')}`
+        )
+      } else {
+        console.log(chalk.bold(`发现 ${localImages.length} 张本地图片，转为 data URI（各平台自行上传图床）...`))
+        console.log()
+        const uriResult = convertImagesToDataUri(parsed.content, fileDir)
+        if (parsed.format === 'markdown') {
+          processedMarkdown = uriResult.content
+          processedHtml = markdownToHtml(uriResult.content)
+        } else {
+          processedHtml = uriResult.content
+        }
+        console.log()
+        console.log(
+          `图片转换: ${chalk.green(uriResult.convertedCount + ' 成功')}, ${chalk.red(uriResult.failedCount + ' 失败')}`
+        )
       }
       console.log()
     }

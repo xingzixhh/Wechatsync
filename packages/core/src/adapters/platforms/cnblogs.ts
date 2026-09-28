@@ -255,12 +255,19 @@ export class CnblogsAdapter extends CodeAdapter {
       throw new Error('XSRF-TOKEN 未获取')
     }
 
-    // 下载图片
-    const imageResponse = await fetch(src)
-    if (!imageResponse.ok) {
-      throw new Error('图片下载失败: ' + src)
+    // data URI 或远程 URL → Blob（相对路径 images/xxx 在此阶段已不该出现）
+    let imageBlob: Blob
+    if (src.startsWith('data:')) {
+      imageBlob = await fetch(src).then((r) => r.blob())
+    } else if (src.startsWith('http://') || src.startsWith('https://')) {
+      const imageResponse = await fetch(src)
+      if (!imageResponse.ok) {
+        throw new Error('图片下载失败: ' + src)
+      }
+      imageBlob = await imageResponse.blob()
+    } else {
+      throw new Error('不支持的图片地址（请先转 data URI 或 https）: ' + src)
     }
-    const imageBlob = await imageResponse.blob()
 
     // 构建 FormData
     const formData = new FormData()

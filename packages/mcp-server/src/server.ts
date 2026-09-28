@@ -12,6 +12,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js'
 import express, { type Request, type Response } from 'express'
 import { ExtensionBridge } from './ws-bridge.js'
+import { parseMarkdownFile } from './local-images.js'
 import type { PlatformInfo, SyncResult } from './types.js'
 
 export class SyncAssistantMcpServer {
@@ -128,7 +129,8 @@ export class SyncAssistantMcpServer {
           },
           {
             name: 'sync_article',
-            description: '同步文章到指定平台（保存为草稿）',
+            description:
+              '同步文章到指定平台（保存为草稿）。有本地图片请用 sync_markdown_file。markdown 里禁止残留 images/xxx.jpg。',
             inputSchema: {
               type: 'object',
               properties: {
@@ -147,7 +149,7 @@ export class SyncAssistantMcpServer {
                 },
                 markdown: {
                   type: 'string',
-                  description: '文章内容（Markdown 格式，可选）',
+                  description: '文章内容（Markdown；图片须 https 或 data URI）',
                 },
                 cover: {
                   type: 'string',
@@ -155,6 +157,30 @@ export class SyncAssistantMcpServer {
                 },
               },
               required: ['platforms', 'title', 'content'],
+            },
+          },
+          {
+            name: 'sync_markdown_file',
+            description:
+              '【推荐·带图】读本地 md，自动把相对路径图转 data URI，再同步到各站草稿。',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                filePath: {
+                  type: 'string',
+                  description: '本地 .md 绝对路径',
+                },
+                platforms: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: '目标平台列表',
+                },
+                title: {
+                  type: 'string',
+                  description: '可选标题',
+                },
+              },
+              required: ['filePath', 'platforms'],
             },
           },
           {
@@ -215,6 +241,29 @@ export class SyncAssistantMcpServer {
               },
             })
             break
+
+          case 'sync_markdown_file': {
+            const filePath = (args as { filePath: string }).filePath
+            const platforms = (args as { platforms: string[] }).platforms
+            const overrideTitle = (args as { title?: string }).title
+            const parsed = parseMarkdownFile(filePath)
+            const title = overrideTitle || parsed.title
+            const syncResults = await this.bridge.request<SyncResult[]>('syncArticle', {
+              platforms,
+              article: {
+                title,
+                markdown: parsed.markdown,
+                content: parsed.markdown,
+              },
+            })
+            result = {
+              title,
+              imagesConverted: parsed.convertedCount,
+              imagesFailed: parsed.failed,
+              results: syncResults,
+            }
+            break
+          }
 
           case 'extract_article':
             result = await this.bridge.request('extractArticle')

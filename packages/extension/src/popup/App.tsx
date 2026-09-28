@@ -3,6 +3,7 @@ import { HomeNew } from './pages/HomeNew'
 import { AddCMSPage } from './pages/AddCMS'
 import { HistoryPage } from './pages/History'
 import { AboutPage } from './pages/About'
+import { McpPage } from './pages/McpPage'
 
 export default function App() {
   return (
@@ -10,6 +11,7 @@ export default function App() {
       <div className="flex flex-col h-full min-h-[500px]">
         <Routes>
           <Route path="/" element={<HomeNew />} />
+          <Route path="/mcp" element={<McpPage />} />
           <Route path="/add-cms" element={<AddCMSPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/about" element={<AboutPage />} />

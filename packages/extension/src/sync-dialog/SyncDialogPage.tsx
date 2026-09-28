@@ -173,7 +173,7 @@ export function SyncDialogPage() {
     <div className="h-full flex flex-col bg-white rounded-xl overflow-hidden shadow-2xl">
       {/* Dialog header */}
       <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
-        <span className="font-semibold text-gray-900">文章同步</span>
+        <span className="font-semibold text-gray-900">可见发文助手</span>
         <button
           onClick={handleClose}
           className="p-1 rounded hover:bg-gray-100 transition-colors"

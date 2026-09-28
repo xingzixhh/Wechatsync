@@ -21,18 +21,18 @@ export function AboutPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8">
         {/* Logo & Title */}
         <img src="/assets/icon-128.png" alt="Logo" className="w-16 h-16 mb-3" />
-        <h2 className="text-lg font-semibold">文章同步助手</h2>
+        <h2 className="text-lg font-semibold">可见发文助手</h2>
         <p className="text-sm text-muted-foreground mt-1">v{version}</p>
 
         {/* Description */}
         <p className="text-sm text-muted-foreground text-center mt-4 leading-relaxed">
-          一键将文章同步到多个平台
+          一键把文章同步到知乎、掘金、头条等平台草稿箱
         </p>
 
         {/* Links */}
         <div className="flex flex-col gap-2 mt-6 w-full max-w-[240px]">
           <a
-            href="https://github.com/wechatsync/Wechatsync"
+            href="https://github.com/xingzixhh/Wechatsync"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border hover:bg-muted transition-colors text-sm"
@@ -42,7 +42,7 @@ export function AboutPage() {
             <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
           </a>
           <a
-            href="https://www.wechatsync.com/?utm_source=extension_about"
+            href="https://www.kejiangeo.com/"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border hover:bg-muted transition-colors text-sm"
@@ -52,13 +52,13 @@ export function AboutPage() {
             <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
           </a>
           <a
-            href="https://fun0.netlify.app/about/?utm_source=wechatsync"
+            href="https://github.com/wechatsync/Wechatsync"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border hover:bg-muted transition-colors text-sm"
           >
             <Heart className="w-4 h-4 flex-shrink-0 text-red-400" />
-            <span className="flex-1">作者: fun</span>
+            <span className="flex-1">基于 Wechatsync</span>
             <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
           </a>
           <a

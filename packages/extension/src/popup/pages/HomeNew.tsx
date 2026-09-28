@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Settings, Plus, Clock, X, Download, Info } from 'lucide-react'
+import { Settings, Plus, Clock, X, Download, Info, Plug } from 'lucide-react'
 import { useSyncStore } from '../stores/sync'
 import { SettingsDrawer } from '../components/SettingsDrawer'
 import { SyncDialog } from '@/components/sync-dialog'
@@ -124,7 +124,7 @@ export function HomeNew() {
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-2.5 border-b">
         <div className="flex items-center gap-2">
           <img src="/assets/icon-48.png" alt="Logo" className="w-6 h-6" />
-          <h1 className="font-semibold">文章同步助手</h1>
+          <h1 className="font-semibold">可见发文助手</h1>
         </div>
         <nav className="flex items-center gap-0.5">
           <button
@@ -133,6 +133,16 @@ export function HomeNew() {
           >
             <Plus className="w-3.5 h-3.5" />
             <span className="text-[10px] text-muted-foreground leading-none">添加</span>
+          </button>
+          <button
+            onClick={() => {
+              navigate('/mcp')
+              trackFeatureDiscovery('mcp', 'header_icon').catch(() => {})
+            }}
+            className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
+          >
+            <Plug className="w-3.5 h-3.5" />
+            <span className="text-[10px] text-muted-foreground leading-none">MCP</span>
           </button>
           <button
             onClick={() => navigate('/history')}
@@ -220,7 +230,7 @@ export function HomeNew() {
               <br />
               如果你是开发者，欢迎参与进来{' '}
               <a
-                href="https://github.com/wechatsync/Wechatsync"
+                href="https://github.com/xingzixhh/Wechatsync"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"

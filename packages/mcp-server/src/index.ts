@@ -17,6 +17,7 @@ import express, { type Request, type Response } from 'express'
 import fs from 'fs'
 import path from 'path'
 import { ExtensionBridge } from './ws-bridge.js'
+import { parseMarkdownFile } from './local-images.js'
 import type { PlatformInfo, SyncResult } from './types.js'
 
 const WS_PORT = parseInt(process.env.SYNC_WS_PORT || '9527', 10)
@@ -77,7 +78,8 @@ function createServer(): Server {
         },
         {
           name: 'sync_article',
-          description: '同步文章到指定平台（保存为草稿）。支持 Markdown 或 HTML 格式，优先使用 markdown 字段。重要：如果文章包含本地图片引用，必须先读取图片文件并转换为 base64 data URI 格式（如 ![img](data:image/png;base64,xxx)）。',
+          description:
+            '同步文章到指定平台（保存为草稿）。有本地图片时优先用 sync_markdown_file（传 md 文件路径，自动把 images/xxx.jpg 转成 data URI）。若直接传 markdown 字符串，本地相对路径图片不会上传，必须已是 https 或 data URI。',
           inputSchema: {
             type: 'object',
             properties: {
@@ -92,11 +94,12 @@ function createServer(): Server {
               },
               markdown: {
                 type: 'string',
-                description: '文章正文内容（Markdown 格式，推荐）。注意：1) 不要包含标题行（# xxx），只传正文部分；2) 本地图片必须转换为 base64 data URI 格式，如 ![图片](data:image/png;base64,iVBORw0KGgo...)',
+                description:
+                  '文章正文（Markdown）。不要带标题行；图片须为 https 或 data:image/...;base64,...，禁止残留 images/xxx.jpg',
               },
               content: {
                 type: 'string',
-                description: '文章正文内容（HTML 格式，可选）。如果提供了 markdown 则此字段可忽略。',
+                description: '文章正文（HTML，可选）。有 markdown 时可忽略。',
               },
               cover: {
                 type: 'string',
@@ -104,6 +107,30 @@ function createServer(): Server {
               },
             },
             required: ['platforms', 'title', 'markdown'],
+          },
+        },
+        {
+          name: 'sync_markdown_file',
+          description:
+            '【推荐·带图外发】读取本地 Markdown 文件，自动把相对路径图片（如 images/fengmian03.jpg）转成 data URI，再同步到各站草稿；各站适配器会把图传到本站图床。不要再手抄到博客园再一个个点同步。',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              filePath: {
+                type: 'string',
+                description: '本地 .md 绝对路径（同目录或相对路径下要有 images/）',
+              },
+              platforms: {
+                type: 'array',
+                items: { type: 'string' },
+                description: '目标平台，如 ["cnblogs","zhihu","juejin","bilibili","baijiahao","csdn","sohu","weixin","51cto"]',
+              },
+              title: {
+                type: 'string',
+                description: '可选；不传则从 # 标题或 front matter 取',
+              },
+            },
+            required: ['filePath', 'platforms'],
           },
         },
         {
@@ -182,6 +209,29 @@ function createServer(): Server {
             },
           })
           break
+
+        case 'sync_markdown_file': {
+          const filePath = (args as { filePath: string }).filePath
+          const platforms = (args as { platforms: string[] }).platforms
+          const overrideTitle = (args as { title?: string }).title
+          const parsed = parseMarkdownFile(filePath)
+          const title = overrideTitle || parsed.title
+          const syncResults = await bridge.request<SyncResult[]>('syncArticle', {
+            platforms,
+            article: {
+              title,
+              markdown: parsed.markdown,
+              content: parsed.markdown,
+            },
+          })
+          result = {
+            title,
+            imagesConverted: parsed.convertedCount,
+            imagesFailed: parsed.failed,
+            results: syncResults,
+          }
+          break
+        }
 
         case 'extract_article':
           result = await bridge.request('extractArticle')
